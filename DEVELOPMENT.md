@@ -6,7 +6,7 @@
 
 ## 1. 快速开始
 
-本项目使用 Python 3.11+、内置的 `venv` 进行虚拟环境管理，并使用 `pip` 进行包管理。
+本项目使用 Python 3.11+，并采用现代 Python 包管理与运行工具 **`uv`**（配合 `pyproject.toml`）进行项目的虚拟环境与依赖管理。
 
 ### Step 1: 克隆/进入项目目录
 确保你已在项目根目录下：
@@ -15,70 +15,48 @@ cd d:/Projects/Test
 ```
 
 ### Step 2: 创建虚拟环境
-在项目根目录下创建一个名为 `.venv` 的虚拟环境：
+在项目根目录下创建一个 `.venv` 的虚拟环境：
 ```bash
-# Windows
-python -m venv .venv
-
-# macOS / Linux
-python3 -m venv .venv
+uv venv
 ```
 
-### Step 3: 激活虚拟环境
-根据你的操作系统激活虚拟环境：
-- **Windows (PowerShell)**:
-  ```powershell
-  .venv\Scripts\Activate.ps1
-  ```
-- **Windows (CMD)**:
-  ```cmd
-  .venv\Scripts\activate.bat
-  ```
-- **macOS / Linux**:
-  ```bash
-  source .venv/bin/activate
-  ```
-
-### Step 4: 安装项目依赖
-安装项目运行及开发所需的全部依赖：
+### Step 3: 同步依赖并初始化开发环境
+同步安装项目运行及开发所需的全部依赖：
 ```bash
-pip install --upgrade pip
-pip install -r requirements.txt
+# 此命令将自动基于 pyproject.toml 及 uv.lock 在本地同步安装所有依赖
+uv sync --native-tls
 ```
-
-> [!NOTE]
-> 如果你是首次初始化项目且 `requirements.txt` 尚未创建，可以先安装核心开发工具并保存：
-> ```bash
-> pip install pytest pytest-mock ruff
-> pip freeze > requirements.txt
-> ```
 
 ---
 
 ## 2. 运行测试
 
-本项目使用 `pytest` 作为测试框架。
+本项目使用 `pytest` 作为测试框架。依据项目规范，测试已被拆分为**单元测试**与**集成测试**。
 
 ### 运行所有测试
-在激活虚拟环境的状态下，在根目录运行：
+在根目录运行：
 ```bash
-pytest
+uv run pytest
 ```
 
-### 常用 pytest 命令参数
-- **打印详细输出**：`pytest -v`
-- **打印标准输出 (print语句)**：`pytest -s`
-- **运行指定文件**：`pytest tests/test_main.py`
-- **运行指定测试类/方法**：`pytest tests/test_main.py::TestClass::test_method`
+### 打印详细输出与标准输出
+```bash
+uv run pytest -v -s
+```
+
+### 仅运行指定目录/文件
+- **只运行单元测试**：`uv run pytest tests/unit`
+- **只运行集成测试**：`uv run pytest tests/integration`
+- **运行指定测试类/方法**：`uv run pytest tests/unit/services/test_user.py::TestUserService::test_create_user_success`
 
 ---
 
 ## 3. 运行开发服务器
 
-在激活虚拟环境且已安装依赖的状态下，可以在根目录下运行以下命令启动本地 Web 服务：
+在已安装依赖的状态下，可以通过以下命令启动本地 Web 服务：
 
 ```bash
-uvicorn src.my_project.main:app --reload
+uv run uvicorn src.my_project.app:app --reload
 ```
 
 ### 调试与 API 文档
@@ -90,29 +68,31 @@ uvicorn src.my_project.main:app --reload
 
 ## 4. 代码格式化与 Lint
 
-我们使用 `ruff` 代替传统的 black、flake8 和 isort，它提供极速的 Linting 和格式化。
+我们使用 `ruff` 工具进行极速的 Lint 静态检查和代码格式化，使用 `pyright` 进行类型检查。
 
-### 运行 Lint 检查
-检查代码中是否存在不规范的语法或风格问题：
+### 运行 Lint 检查与自动修复
 ```bash
-ruff check
+# 检查代码中的规范和语法问题
+uv run ruff check .
+
+# 自动修复可修复的静态检查问题并格式化
+uv run ruff check --fix .
+uv run ruff format .
 ```
 
-### 自动修复 Lint 问题并格式化代码
-自动修复可修复的 Lint 错误，并对代码进行排版格式化：
+### 运行静态类型检查
 ```bash
-# 修复 lint 并格式化
-ruff check --fix
-ruff format
+uv run pyright
 ```
 
 ---
 
-## 5. 开发规范摘要
+## 5. 开发规范与 DoD (完成定义)
 
-在编写代码时，请遵守 [`.agents/rules/python_development.md`](file:///d:/Projects/Test/.agents/rules/python_development.md) 规则：
-1. **类型提示 (Type Hints)**：所有公开的方法和函数必须声明完整的参数及返回值类型。
-2. **测试同行**：任何新增的业务逻辑（位于 `src/`）必须有对应的单元测试用例（位于 `tests/`）。
+在编写代码时，请严格遵守 [`.agents/rules/python_development.md`](file:///d:/Projects/Test/.agents/rules/python_development.md) 规则：
+1. **类型提示 (Type Hints)**：所有公开方法和函数必须声明完整的参数及返回值类型，新代码在 Pyright 下应当通过严格检查。
+2. **测试分层**：
+   - 核心业务逻辑应写入单元测试 `tests/unit/` 且避免任何真实 HTTP 链路和网络依赖。
+   - API 路由端点行为放在集成测试 `tests/integration/` 中，使用数据工厂生成 payload，并断言响应。
 3. **中文文档**：所有代码注释和 Docstrings 一律使用**中文（简体）**。
-4. **接口规范**：新写的 API 应定义 Pydantic 输入输出 Schema，并将复杂业务逻辑写入服务层（Services）。
-
+4. **测试覆盖**：新增或修改的核心业务代码应达到高分支覆盖，任何代码在合并主分支前必须通过全部质量门禁。

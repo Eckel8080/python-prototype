@@ -18,9 +18,9 @@ class UserUpdate(BaseModel):
     """更新用户时的请求输入模型（所有字段可选）。"""
 
     username: str | None = Field(
-        None, min_length=3, max_length=50, description="用户名"
+        default=None, min_length=3, max_length=50, description="用户名"
     )
-    email: EmailStr | None = Field(None, description="邮箱地址")
+    email: EmailStr | None = Field(default=None, description="邮箱地址")
 
 
 class UserResponse(UserBase):
